@@ -11,7 +11,8 @@ This is incompatible with `transformers>=4.56.0`
     - `hf auth login`
 
 - prune model  (4 min per pruning)
-    - `git clone ` TODO fixed wanda repo 
+    - `git clone https://github.com/vlejd/wanda-modern.git`
+        - original repo is `https://github.com/locuslab/wanda.git` but it contains data loading bug (PR with fix was opened 1 year ago)
     - `cd wanda-modern`
     - `uv venv; uv sync`
     - `source .venv/bin/activate`
