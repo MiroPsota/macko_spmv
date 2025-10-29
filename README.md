@@ -1,7 +1,7 @@
 # Overview
 
 MACKO-SpMV: **M**utually **A**ligned **C**ompressed coordinates **K**ernel **O**ptimised **Sp**arse **M**atrix **V**ector multiplication is a new format for representing sparse matrices and a cuda kernel for efficient matrix vector multiplication using this format.
-It is targeted at sparsities between 20-90\%, commonly seen in Neural Network pruning.
+It is targeted at sparsities between 20-90%, commonly seen in Neural Network pruning.
 
 These sparsities were historically very hard to make use of in practice, because existing formats like CSR are not optimized for this range.
 We hope this library will help to spark more interest in the field of neural network pruning and find uses outside it as well.
@@ -20,7 +20,7 @@ In general, you should expect following results for consumer GPUs.
 fp16 values
 - 50% matrix density: 1.5x memory reduction, 1.3-1.5x speedup over cuBLAS
 - 10% matrix density: 6.25x memory reduction, 3.5-4.5x speedup over cuBLAS
-- Faster with smaller memory footprint compared to CSR format for all densities above 10\%.
+- Faster with smaller memory footprint compared to CSR format for all densities above 10%.
 
 This translates directly to End2End LLM inference improvements.
 

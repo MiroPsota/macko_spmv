@@ -1,6 +1,6 @@
 # Instructions for End2End model inference
 
-These are instructions for Llama-2-7b-hf model pruning to sparsity 60\%, density 40\%. 
+These are instructions for Llama-2-7b-hf model pruning to sparsity 60%, density 40%. 
 Be carefull, MACKO uses density, wanda pruning uses sparsity.
 
 This is incompatible with `transformers>=4.56.0`
