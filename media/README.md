@@ -31,7 +31,7 @@ Density is $1-sparsity$.
 Effective density $d_{eff}$ is a measure of quality of the storage format and answers the question: What will be the final disk size as a percentage of the dense representation?
 Given that values of the original matrix require $b_{val}$ bits per value (fp16 requires $16$ bits), we get:
 
-$$d_{eff}=\frac{real\_storage}{R.C.b_{val}}$$
+$$d_{eff}=\frac{realstorage}{R.C.b_{val}}$$
 
 For example, dense representation has $d_{eff}=1$ regardless of the matrix density.
 
@@ -68,10 +68,11 @@ TODO visual representation of MACKO
 In the best case, we will not need to add any padding.
 In terms of storage, we just added $b_{\Delta}=4$ bits (to represent deltas) for every non zero value, and one index for each row.
 
-$$d_{eff\_optimistic} = \frac{R.C.d(b_{\Delta}+b_{val}) + 32.R}{R.C.b_{val}}$$
+$$d_{besteff} = \frac{R.C.d(b_{\Delta}+b_{val}) + 32R}{R.C.b_{val}}$$
 
 After dropping the $\frac{32}{C.b_{val}}$ term we get
-$$d_{eff\_optimistic} = d\frac{(b_{\Delta}+b_{val})}{b_{val}} = 1.25d$$
+
+$$d_{besteff} = d\frac{(b_{\Delta}+b_{val})}{b_{val}} = 1.25~d$$
 
 This is amazing! 
 Our format becomes more effective then dense representation for density as high as $80\%$ and sparsity as low as $20\%$. 
@@ -94,11 +95,11 @@ On the other hand, if we have delta $17$, we need to add a padding value and the
 In the worst case, all zeroes need to be covered by padding.
 So we need to add $\frac{(1-d).R.C}{2^{b_{\Delta}}}$ additional zeroes to our `values` array and corresponding entries to the `deltas` array.
 
-$$d_{eff\_pessimistic} = \frac{R.C(d+\frac{(1-d)}{2^{b_{\Delta}}})(b_{\Delta}+b_{val}) + 32.R}{R.C.b_{val}}$$
+$$d_{worsteff} = \frac{R.C(d+\frac{(1-d)}{2^{b_{\Delta}}})(b_{\Delta}+b_{val}) + 32R}{R.C.b_{val}}$$
 
 We again drop the negligeable terms and get
 
-$$d_{eff\_pessimistic} = \left( d+\frac{(1-d)}{2^{b_{\Delta}}} \right) \frac{(b_{\Delta}+b_{val})}{b_{val}} = 1.25\left(d+\frac{1-d}{16}\right)$$
+$$d_{worsteff} = \left( d+\frac{(1-d)}{2^{b_{\Delta}}} \right) \frac{(b_{\Delta}+b_{val})}{b_{val}} = 1.25\left(d+\frac{1-d}{16}\right)$$
 
 That right term is a mouthfull, but it is still pretty good.
 For example now the break even point is at $d=0.75$ which is still very good.
@@ -115,7 +116,7 @@ For every $16$ consecutive tails you pay a penalty, and reset your number of con
 Let's define $z=(1-d)^{2^{b_{\Delta}}}$.
 The expected effective density turns out to be
 
-$$d_{eff\_expected}= d  \left( 1 + \frac{z}{1-z} \right)\frac{(b_{\Delta}+b_{val})}{b_{val}}$$
+$$d_{expectedeff}= d  \left( 1 + \frac{z}{1-z} \right)\frac{(b_{\Delta}+b_{val})}{b_{val}}$$
 
 The break even point is now still very close to $d=0.8$, the difference compared to the best case starts to be noticeable around $d=0.16$.
 
