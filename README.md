@@ -7,7 +7,7 @@ These sparsities were historically very hard to make use of in practice, because
 We hope this library will help to spark more interest in the field of neural network pruning and find uses outside it as well.
 Debate whether quantization is better than pruning is beyond the scope of this work, but we hope we will help to bridge the gap.
 
-You can find more information in [out writeup](media/README.md).
+You can find more information in [our writeup](media/README.md).
 For even more technical information see our paper (TODO coming soon).
 
 
@@ -96,7 +96,7 @@ Contributions are welcome!
 
 Current challenges
 
-- Support more data types (bfloat16, fp8)
+- Support more data types (bfloat16, fp8, int8, float32) in a maintainable way
 - Torch batch routing
 - Installation / build system optimization
 - Profiling on server GPUs
@@ -105,4 +105,5 @@ Current challenges
 
 If you want to collaborate and can write GEMV that matches/beats cuBLAS on H100 GPU,
 or if you have access to H100 with enabled profiling, please reach out.
+
 Discord: @vlejd
