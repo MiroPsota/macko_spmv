@@ -42,3 +42,12 @@ This is incompatible with `transformers>=4.56.0`
 - Reset GPU compute frequency: `sudo nvidia-smi -i 0 -rgc`
 - Query real time GPU stats: `nvidia-smi --query-gpu=index,timestamp,power.draw,clocks.sm,clocks.mem,clocks.gr,memory.used --format=csv -l 1`
 - Get gpu name: `nvidia-smi --query-gpu=name --format=csv,noheader | tr ' ' '_'`
+
+
+# Baseline
+
+Dasp
+- `nvcc -O3 src/main_f16.cu -o spmv_half -arch=sm_75 -lineinfo -lcusparse -lcublas`
+- use `gen_mtx_matrices.ipynb` to generate testing data
+- run `for f in ../matrices/* ; do echo $f ; ./spmv_half $f ; done`
+- parse the result

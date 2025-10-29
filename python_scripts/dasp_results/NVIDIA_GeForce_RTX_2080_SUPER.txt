@@ -1,0 +1,176 @@
+Running dasp on:  ../matrices/4096_4096_d0.05.mtx
+
+===../matrices/4096_4096_d0.05.mtx===
+
+cusparse:  0.0227 ms,  74.0487 Gflop/s,  223.5926 GB/s,  297.2798 GB/s
+SpMV_X:    0.0164 ms, 102.2689 GFlop/s,  322.0581 GB/s,  425.0329 GB/s
+SpMV_X2:   0.0162 ms, 103.4800 GFlop/s,  322.0581 GB/s,  425.0329 GB/s
+
+Running dasp on:  ../matrices/4096_4096_d0.10.mtx
+
+===../matrices/4096_4096_d0.10.mtx===
+
+cusparse:  0.0357 ms,  93.9479 Gflop/s,  282.7613 GB/s,  376.4799 GB/s
+SpMV_X:    0.0404 ms,  83.0042 GFlop/s,  331.8903 GB/s,  419.8347 GB/s
+SpMV_X2:   0.0381 ms,  88.1596 GFlop/s,  331.8903 GB/s,  419.8347 GB/s
+
+Running dasp on:  ../matrices/4096_4096_d0.20.mtx
+
+===../matrices/4096_4096_d0.20.mtx===
+
+cusparse:  0.0583 ms, 115.0701 Gflop/s,  345.7721 GB/s,  460.7017 GB/s
+SpMV_X:    0.0733 ms,  91.6099 GFlop/s,  381.3267 GB/s,  483.2472 GB/s
+SpMV_X2:   0.0658 ms, 102.0450 GFlop/s,  381.3267 GB/s,  483.2472 GB/s
+
+Running dasp on:  ../matrices/4096_4096_d0.30.mtx
+
+===../matrices/4096_4096_d0.30.mtx===
+
+cusparse:  0.0805 ms, 125.0041 Gflop/s,  375.4193 GB/s,  500.3216 GB/s
+SpMV_X:    0.0835 ms, 120.6170 GFlop/s,  397.4526 GB/s,  523.3525 GB/s
+SpMV_X2:   0.0799 ms, 126.0024 GFlop/s,  397.4526 GB/s,  523.3525 GB/s
+
+Running dasp on:  ../matrices/4096_4096_d0.40.mtx
+
+===../matrices/4096_4096_d0.40.mtx===
+
+cusparse:  0.1123 ms, 119.5139 Gflop/s,  358.8336 GB/s,  478.2746 GB/s
+SpMV_X:    0.1148 ms, 116.9623 GFlop/s,  400.4421 GB/s,  522.1580 GB/s
+SpMV_X2:   0.1102 ms, 121.7902 GFlop/s,  400.4421 GB/s,  522.1580 GB/s
+
+Running dasp on:  ../matrices/4096_4096_d0.50.mtx
+
+===../matrices/4096_4096_d0.50.mtx===
+
+cusparse:  0.1536 ms, 109.1989 Gflop/s,  327.8101 GB/s,  436.9557 GB/s
+SpMV_X:    0.1352 ms, 124.0854 GFlop/s,  408.9521 GB/s,  537.0313 GB/s
+SpMV_X2:   0.1309 ms, 128.1418 GFlop/s,  408.9521 GB/s,  537.0313 GB/s
+
+Running dasp on:  ../matrices/4096_4096_d0.60.mtx
+
+===../matrices/4096_4096_d0.60.mtx===
+
+cusparse:  0.2310 ms,  87.1370 Gflop/s,  261.5529 GB/s,  348.6545 GB/s
+SpMV_X:    0.1708 ms, 117.8651 GFlop/s,  376.3173 GB/s,  496.4591 GB/s
+SpMV_X2:   0.1675 ms, 120.1907 GFlop/s,  376.3173 GB/s,  496.4591 GB/s
+
+Running dasp on:  ../matrices/4096_4096_d0.70.mtx
+
+===../matrices/4096_4096_d0.70.mtx===
+
+cusparse:  0.2921 ms,  80.4186 Gflop/s,  241.3680 GB/s,  321.7586 GB/s
+SpMV_X:    0.1931 ms, 121.6540 GFlop/s,  405.4205 GB/s,  531.7306 GB/s
+SpMV_X2:   0.1859 ms, 126.3542 GFlop/s,  405.4205 GB/s,  531.7306 GB/s
+
+Running dasp on:  ../matrices/4096_4096_d0.80.mtx
+
+===../matrices/4096_4096_d0.80.mtx===
+
+cusparse:  0.3686 ms,  72.8346 Gflop/s,  218.5926 GB/s,  291.4050 GB/s
+SpMV_X:    0.2277 ms, 117.8817 GFlop/s,  380.2897 GB/s,  504.6564 GB/s
+SpMV_X2:   0.2158 ms, 124.4047 GFlop/s,  380.2897 GB/s,  504.6564 GB/s
+
+Running dasp on:  ../matrices/4096_4096_d0.90.mtx
+
+===../matrices/4096_4096_d0.90.mtx===
+
+cusparse:  0.4457 ms,  67.7565 Gflop/s,  203.3429 GB/s,  271.0810 GB/s
+SpMV_X:    0.2415 ms, 125.0719 GFlop/s,  411.1607 GB/s,  542.4799 GB/s
+SpMV_X2:   0.2299 ms, 131.3548 GFlop/s,  411.1607 GB/s,  542.4799 GB/s
+
+Running dasp on:  ../matrices/4096_4096_d1.00.mtx
+
+===../matrices/4096_4096_d1.00.mtx===
+
+cusparse:  0.5343 ms,  62.7974 Gflop/s,  188.4537 GB/s,  251.2358 GB/s
+SpMV_X:    0.2684 ms, 124.9942 GFlop/s,  408.9521 GB/s,  545.0148 GB/s
+SpMV_X2:   0.2466 ms, 136.0959 GFlop/s,  408.9521 GB/s,  545.0148 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d0.05.mtx
+
+===../matrices/8192_8192_d0.05.mtx===
+
+cusparse:  0.0585 ms, 114.7925 Gflop/s,  345.4987 GB/s,  460.0109 GB/s
+SpMV_X:    0.0712 ms,  94.3096 GFlop/s,  358.2753 GB/s,  453.2112 GB/s
+SpMV_X2:   0.0705 ms,  95.1683 GFlop/s,  358.2753 GB/s,  453.2112 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d0.10.mtx
+
+===../matrices/8192_8192_d0.10.mtx===
+
+cusparse:  0.1016 ms, 132.0820 Gflop/s,  396.8908 GB/s,  528.8116 GB/s
+SpMV_X:    0.1297 ms, 103.4872 GFlop/s,  380.3432 GB/s,  482.1506 GB/s
+SpMV_X2:   0.1317 ms, 101.9318 GFlop/s,  380.3432 GB/s,  482.1506 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d0.20.mtx
+
+===../matrices/8192_8192_d0.20.mtx===
+
+cusparse:  0.2415 ms, 111.1497 Gflop/s,  333.7205 GB/s,  444.8024 GB/s
+SpMV_X:    0.2589 ms, 103.6915 GFlop/s,  349.4587 GB/s,  455.7003 GB/s
+SpMV_X2:   0.2525 ms, 106.3064 GFlop/s,  349.4587 GB/s,  455.7003 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d0.30.mtx
+
+===../matrices/8192_8192_d0.30.mtx===
+
+cusparse:  0.4073 ms,  98.8506 Gflop/s,  296.7128 GB/s,  395.5232 GB/s
+SpMV_X:    0.3271 ms, 123.0968 GFlop/s,  397.9195 GB/s,  524.8897 GB/s
+SpMV_X2:   0.3170 ms, 127.0219 GFlop/s,  397.9195 GB/s,  524.8897 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d0.40.mtx
+
+===../matrices/8192_8192_d0.40.mtx===
+
+cusparse:  0.6835 ms,  78.5501 Gflop/s,  235.7461 GB/s,  314.2722 GB/s
+SpMV_X:    0.4409 ms, 121.7560 GFlop/s,  384.4084 GB/s,  509.1263 GB/s
+SpMV_X2:   0.4303 ms, 124.7559 GFlop/s,  384.4084 GB/s,  509.1263 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d0.50.mtx
+
+===../matrices/8192_8192_d0.50.mtx===
+
+cusparse:  1.1135 ms,  60.2665 Gflop/s,  180.8584 GB/s,  241.1102 GB/s
+SpMV_X:    0.5507 ms, 121.8533 GFlop/s,  357.3480 GB/s,  472.6840 GB/s
+SpMV_X2:   0.5817 ms, 115.3642 GFlop/s,  357.3480 GB/s,  472.6840 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d0.60.mtx
+
+===../matrices/8192_8192_d0.60.mtx===
+
+cusparse:  1.6527 ms,  48.7252 Gflop/s,  146.2154 GB/s,  194.9307 GB/s
+SpMV_X:    0.6399 ms, 125.8450 GFlop/s,  414.4166 GB/s,  547.6349 GB/s
+SpMV_X2:   0.6044 ms, 133.2455 GFlop/s,  414.4166 GB/s,  547.6349 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d0.70.mtx
+
+===../matrices/8192_8192_d0.70.mtx===
+
+cusparse:  2.3643 ms,  39.7372 Gflop/s,  119.2393 GB/s,  158.9696 GB/s
+SpMV_X:    0.7300 ms, 128.7086 GFlop/s,  410.0311 GB/s,  542.9614 GB/s
+SpMV_X2:   0.7067 ms, 132.9535 GFlop/s,  410.0311 GB/s,  542.9614 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d0.80.mtx
+
+===../matrices/8192_8192_d0.80.mtx===
+
+cusparse:  2.8483 ms,  37.6973 Gflop/s,  113.1150 GB/s,  150.8066 GB/s
+SpMV_X:    0.8179 ms, 131.2807 GFlop/s,  406.5059 GB/s,  539.6952 GB/s
+SpMV_X2:   0.8061 ms, 133.2097 GFlop/s,  406.5059 GB/s,  539.6952 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d0.90.mtx
+
+===../matrices/8192_8192_d0.90.mtx===
+
+cusparse:  3.5770 ms,  33.7703 Gflop/s,  101.3292 GB/s,  135.0950 GB/s
+SpMV_X:    0.9091 ms, 132.8785 GFlop/s,  406.9468 GB/s,  541.3092 GB/s
+SpMV_X2:   0.8989 ms, 134.3806 GFlop/s,  406.9468 GB/s,  541.3092 GB/s
+
+Running dasp on:  ../matrices/8192_8192_d1.00.mtx
+
+===../matrices/8192_8192_d1.00.mtx===
+
+cusparse:  4.4822 ms,  29.9447 Gflop/s,   89.8487 GB/s,  119.7897 GB/s
+SpMV_X:    1.1298 ms, 118.7925 GFlop/s,  337.0808 GB/s,  449.2630 GB/s
+SpMV_X2:   1.1963 ms, 112.1959 GFlop/s,  337.0808 GB/s,  449.2630 GB/s
+
