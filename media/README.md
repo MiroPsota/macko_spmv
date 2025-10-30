@@ -19,10 +19,79 @@ It is composed of 3 arrays:
 - `column_indices`: holds column index for each value, usually a 32-bit, possibly 16-bit integers.
 - `row_pointers`: index to `values` and `column_indices` signifying the start of a given row.
 
+The biggest problem of CSR in SpMV is the memory overhead it incures because of `column_indices`.  
+`column_indices` are even more dominant if `values` are low precision (16-bit or less).
+SpMV is a memory bound operation, and this memory overhead directly translates to slower runtime.
+
+We need to design a format that does not have unnecesery memory overhead, but still respects constrains for efficient GPU execution.
+
 TODO visual representation of CSR
 
 
-## Notation
+## Background, SpMV
+
+**Sp**arse **M**atrix **V**ector multiplication computes $Y=MV$, whre $M$ is a sparse matrix, and $V$ is a dense column vector.
+Common simplification of this problem is to impose some structure on $M$, like 2:4 sparsity, N:M sparsity, or block sparsity.
+In a our case, there are no contraints on the structure of $M$. 
+
+
+## MACKO storage format
+
+We build upon the CSR format by introducing heavy compression of the `column_indices` and strategic padding of `values`.
+
+We compress the `column_indices` of the CSR format using delta encoding, each delta is the difference of consecutive `column_indices`.
+Then we strategically add 0 values to the `values` array in such a way that all deltas are capped at $2^4=16$.
+This means, all deltas can be stored using $4$-bit integers (all deltas are at least 1 because the column indices are incremental).
+
+We will end up with three arrays:
+- `values`: same as before, holds non zero values of the original matrix, however now there can be some additional zeros. In general, values are $b_{val}$ bit entries.
+- `deltas`: delta encoded `column_indices`, starts independently from 0 for each row. Now, these are 4-bit values, grouped in pairs to work with 8-bit memory words. In general, we can use $b_{\Delta}$-bits for each delta.
+- `row_pointers`: index to `values` and `column_indices` signifying the start of a given row.
+
+Assume one row with values $[1,2,3]$ in columns $[2,36,46]$. Because the difference between the first and second column index is higher that 16 we will need to add 2 zeros.
+The resulting `values` array will be
+$[1,0,0,2,3]$ and the `deltas` array will be $[2,16,16,2,10]$.
+
+The questions are: How much padding do we need to add? What will be the $d_{eff}$ of this format?
+Trust me, it will be ok. Lets first see the multiplication algorithm.
+
+We will look at MACKO-16-4 ($b_{val}=16$, $b_{\Delta}=4$) optimized for fp16 values and broad range of sparsities. 
+Many more combinations are possible.
+
+TODO visual representation of MACKO
+
+
+## MACKO SpMV algorithm
+
+TODO visual representation of algorithm
+
+MACKO-SpMV builds upon Splitk GEMV. There are 3 key insights that are necessary to make this algorithm work.
+Splitk GEMV assigns one warp to each row of matrix $M$ and each warp is responsible to compute the dot product of $V$ and one row. 
+$$Y_r = M_r V$$
+
+To make this algorithm efficient, we just need all memory loading to be coalesced, aligned and large enough to efficiently make use of the cache line.
+
+**First insight**: after warp loads consecutive chunks of values from $M$ (`values`) and `deltas`, threads in the warp can efficiently reconstruct the column indices based on loaded deltas.
+To reconstruct the indices, threads compute prefix sums of deltas using `__shfl_sync` cuda primitive.
+We can compute the whole prefix sum across the whole warp in only 5 instructions.
+Afterwards, the last thread holds the sum of all deltas in the current warp.
+We broadcast this value across all threads and continue with the next chunk of `deltas` and `values`.
+
+**Second insight** : `deltas` and `values` can be load in a way that is efficient and aligned.
+If we load 128-bytes worth of deltas, and 512-bytes worth of values, each thread will load exactly 8 `deltas` and corresponding 8 `values` and no further communication or memory access is needed.
+
+**Third insight**: even though rows can have an arbitrary number of elements, we can still perform proper vectorized memory access.
+We just need to allow warp to potentially read part of the previous row.
+This can be easily solved by masking the loaded values.
+
+After each thread reconstructs the column indices, we read corresponding entries from $V$ and compute the dot product.
+Finally, after warp processes the whole row, we aggregate the partial dot products across warp threads and store them in the result matrix.
+
+
+## Padding analysis
+
+
+### Notation
 
 We have a matrix $M$ with $R$ rows and $C$ columns.
 This matrix has density $d$, meaning it has $R.C.d$ non zero elements.
@@ -38,56 +107,6 @@ For example, dense representation has $d_{eff}=1$ regardless of the matrix densi
 CSR with 16-bit values and 32-bit column indices has $d_{eff}=3d$.
 So if you prune your model to density $d=0.34$ (sparsity 66% ), the CSR representation will take 102% of the disk space (yes, you saved nothing :( ).
 
-
-## Storage Format
-
-We build upon the CSR format and introduce heavy compression of the `column_indices` and strategic padding of `values`.
-
-We compress the `column_indices` of the CSR format using delta encoding, each delta is the difference of consecutive `column_indices`.
-Then we strategically add 0 values to the `values` array in such a way that all deltas are capped at $2^4=16$.
-This means, all deltas can be stored using $4$-bit integers (because they are at least 1, as the columns are incremental).
-
-We will end up with three arrays:
-- `values`: same as before, holds non zero values of the original matrix, however now there can be some additional zeros.
-- `deltas`: delta encoded `column_indices`, starts independently from 0 for each row. Now, these are 4-bit values, grouped in pairs to work with 8-bit memory words.
-- `row_pointers`: index to `values` and `column_indices` signifying the start of a given row.
-
-Assume one row with values $[1,2,3]$ in columns $[2,36,46]$. Because the difference between the first and second column index is higher that 16 we will need to add 2 zeros.
-The resulting `values` array will be
-$[1,0,0,2,3]$ and the `deltas` array will be $[2,16,16,2,10]$.
-
-The questions are: How much padding do we need to add? What will be the $d_{eff}$ of this format?
-Trust me, it will be ok. Lets first see the multiplication algorithm.
-
-TODO visual representation of MACKO
-
-
-## SpMV algorithm
-
-TODO visual representation of algorithm
-
-MACKO-SpMV builds upon Splitk GEMV. There are 3 key insights that are necessary to make this algorithm work.
-This algorithm assigns one warp to each row of matrix $M$ and each warp is responsible to compute the dot product of $V$ and one row $M_r$.
-To make this algorithm efficient, we just need to perform all memory loading to be coalesced, aligned and large enough to efficiently make use of the cache line.
-
-**First insight**: after warp loads consecutive chunks of values from $M$ and deltas, threads in the warp can efficiently reconstruct the column indices based on loaded deltas.
-To reconstruct the indices, threads compute prefix sums of deltas using `__shfl_sync` cuda primitive.
-We can compute the whole prefix sum across the whole warp in only 5 instructions.
-Afterwards, the last thread holds the sum of all deltas in the current warp.
-We broadcast this value across all threads and continue with the next chunks of deltas and values.
-
-**Second insight** : `deltas` and `values` can be load in a way tha is efficient, and aligned.
-If we load 128-bytes worth of deltas, and 512-bytes worth of values, each thread will load exactly 8 `deltas` and corresponding 8 `values` and no further communication or memory access is needed.
-
-**Third insight**: even though rows can have an arbitrary number of elements, we can still perform proper vectorized memory access.
-We just need to allow warp to potentially read part of the row.
-This can be easily solved by masking the loaded values.
-
-After each thread reconstructs the column indices, we read corresponding entries from $V$ and compute the dot product.
-Finally, after warp processes the whole row, we aggregate the partial dot products across warp threads and store them in the result matrix.
-
-
-## Padding analysis
 
 ### Best case
 In the best case, we will not need to add any padding.
@@ -136,7 +155,7 @@ What about the average case? Let's say we have a matrix $M$ whose each element h
 This is not the same as having density $d$, but it is close enough.
 
 It is like playing a game with an unfair coin that has probability $d$ of head and $1-d$ of tail.
-For every $16$ consecutive tails you pay a penalty, and reset your number of consecutive tails.
+For every $16$ consecutive tails you pay a penalty and reset your number of consecutive tails.
 
 Let's define $z=(1-d)^{2^{b_{\Delta}}}$.
 The expected effective density turns out to be
@@ -152,15 +171,15 @@ Here is a table with effective densities for various formats in % across various
 
 |   Density |   CSR32 |   CSR16 |   MACKO best |   MACKO expected |   MACKO worst |
 |----------:|--------:|--------:|-------------:|-----------------:|--------------:|
-|       1   |     3   |     2   |        1.25  |            1.25  |         1.25  |
+|       1.0 |     3.0 |     2.0 |        1.250 |            1.250 |         1.250 |
 |       0.9 |     2.7 |     1.8 |        1.125 |            1.125 |         1.133 |
-|       0.8 |     2.4 |     1.6 |        1     |            1     |         1.016 |
+|       0.8 |     2.4 |     1.6 |        1.000 |            1.000 |         1.016 |
 |       0.7 |     2.1 |     1.4 |        0.875 |            0.875 |         0.898 |
-|       0.6 |     1.8 |     1.2 |        0.75  |            0.75  |         0.781 |
-|       0.5 |     1.5 |     1   |        0.625 |            0.625 |         0.664 |
-|       0.4 |     1.2 |     0.8 |        0.5   |            0.5   |         0.547 |
-|       0.3 |     0.9 |     0.6 |        0.375 |            0.376 |         0.43  |
-|       0.2 |     0.6 |     0.4 |        0.25  |            0.257 |         0.312 |
+|       0.6 |     1.8 |     1.2 |        0.750 |            0.750 |         0.781 |
+|       0.5 |     1.5 |     1.0 |        0.625 |            0.625 |         0.664 |
+|       0.4 |     1.2 |     0.8 |        0.500 |            0.500 |         0.547 |
+|       0.3 |     0.9 |     0.6 |        0.375 |            0.376 |         0.430 |
+|       0.2 |     0.6 |     0.4 |        0.250 |            0.257 |         0.312 |
 |       0.1 |     0.3 |     0.2 |        0.125 |            0.153 |         0.195 |
 
 Or in a graph:
@@ -170,7 +189,7 @@ Or in a graph:
 Some interesting points:
 - MACKO improves over dense representation slightly below $d=0.8$
 - MACKO reaches $d_{eff}=0.5$ at $d=0.4$ for expected and best case and at $d=0.35$ for the worst case.
-- CSR with 16 bit column indices matches MACKO at $d=0.04$ for the best case and $d=0.1$ for the worst case.
+- MACKO improves over CSR with 16 bit column indices for all densities above $d=0.04$ in the best case and $d=0.1$ in the worst case.
 
 
 ## SpMV benchmarks
@@ -182,6 +201,10 @@ Here we show results for NVIDIA GeForce RTX 4090 for small 4096x4096 matrices, a
 ![fp16 NVIDIA GeForce RTX 4090, 4096x4096 relative speedup](../media/fp16_NVIDIA_GeForce_RTX_4090_4096_4096_relative_speedup.svg)
 
 ![NVIDIA GeForce RTX 4090 relative speedup all sizes](../media/NVIDIA_GeForce_RTX_4090_relative_speedup_all_sizes.svg)
+
+Interesting points
+- MACKO improves over cuSPARSE across all sparsities between 0 and 90%. There are shapes for which cuSPARSE can be faster for sparsities above 95%.
+- MACKO improves over cuBLAS for sparsity above 30% in general, and for small matrices even above 20% (this is likely caused by cuBLAS not being optimized for this specific shape and GPU pair).
 
 
 ## Benchmarking details
@@ -213,9 +236,9 @@ All data can be seen in the `./c_benchmarking/results_16bit/<GPU_NAME>/results.t
 # End2End benchmarks
 
 We evaluate MACKO on the Llama-2-7b model pruned with [Wanda](https://arxiv.org/abs/2306.11695) in unstructured mode.
-Then we use the model to generate 100 tokens either using the MACKO representation, or using the dense representation.
+We use the model to generate 100 tokens either using the MACKO representation, or using the dense representation on NVIDIA 4090 GPU.
 Finally we compute the average tokens/second.
-Note that using MACKO is a lossless format and perfectly reproduces the result of dense representation (up to rounding errors).
+Note that MACKO is a lossless format and perfectly reproduces the result of dense representation (up to rounding errors).
 
 | Density | Dense peak memory size [GB] | MACKO peak memory size [GB] | MACKO relative memory difference [%] | Dense relative memory difference [%] | Dense speed [tokens/sec] | MACKO speed [tokens/sec] | MACKO relative speedup [%] |
 | ------- | --------------------------- | ---------------------------- | ------------------------------------- | ------------------------------------ | ------------------------ | ------------------------- | --------------------------- |
@@ -229,15 +252,22 @@ Note that using MACKO is a lossless format and perfectly reproduces the result o
 | 0.10    | 13.59                       | 2.67                         | \-80.37                               | 409.51                               | 66.48                    | 255.01                    | 283.59                      |
 
 
+We see that MACKO practically matches the dense representation at very high density of 80%, and we see a meaningfull 10% memory reduction and speedup for density 70%
+
+For density 50%, we see a significatn 1.5x resuction in memory and 1.5x increase in number of tokens.
+
+Finally, these improvements hold all the way to density 10%, where we see 5x memory reduction and 4x speedup.
+
 If you want to reproduce End2End inference results, follow [technical instructions](../TECHNICAL_README.md).
+
 
 Note: The process of running LLM efficiently in torch with custom multiplication kernels is more involved than one would expect.
 If you attempt to do the same, be ready for the following:
 - Integrate your kernel into python
 - Integrate your kernel into torch
 - Make the integration compatible with torch.compile
-- Rewrite .generate function from transformers library to work with StaticCache and not change the computational graph during sampling
-- Rewrite .generate again and make it deterministic and seedable
+- Rewrite `.generate` function from transformers library to work with `StaticCache` and not change the computational graph during sampling
+- Rewrite `.generate` again and make it deterministic and seedable
 - If your kernel works with tensors of unpredictable sizes, implement custom model weight loading and architecture overriding.
 - (technically optional): Make sure your kernel supports batch inputs
 - (technically optional): Set up the kernel as a python package
