@@ -65,7 +65,7 @@ TODO visual representation of MACKO
 
 TODO visual representation of algorithm
 
-MACKO-SpMV builds upon Splitk GEMV. There are 3 key insights that are necessary to make this algorithm work.
+MACKO-SpMV builds upon [Splitk GEMV](https://docs.nvidia.com/cutlass/media/docs/cpp/efficient_gemm.html). There are 3 key insights that are necessary to make this algorithm work.
 Splitk GEMV assigns one warp to each row of matrix $M$ and each warp is responsible to compute the dot product of $V$ and one row. 
 $$Y_r = M_r V$$
 
@@ -77,7 +77,7 @@ We can compute the whole prefix sum across the whole warp in only 5 instructions
 Afterwards, the last thread holds the sum of all deltas in the current warp.
 We broadcast this value across all threads and continue with the next chunk of `deltas` and `values`.
 
-**Second insight** : `deltas` and `values` can be load in a way that is efficient and aligned.
+**Second insight** : `deltas` and `values` can be loaded in a way that is efficient and aligned.
 If we load 128-bytes worth of deltas, and 512-bytes worth of values, each thread will load exactly 8 `deltas` and corresponding 8 `values` and no further communication or memory access is needed.
 
 **Third insight**: even though rows can have an arbitrary number of elements, we can still perform proper vectorized memory access.
@@ -94,13 +94,13 @@ Finally, after warp processes the whole row, we aggregate the partial dot produc
 ### Notation
 
 We have a matrix $M$ with $R$ rows and $C$ columns.
-This matrix has density $d$, meaning it has $R.C.d$ non zero elements.
+This matrix has density $d$, meaning it has $R⋅C⋅d$ non zero elements.
 Density is $1-sparsity$.
 
 Effective density $d_{eff}$ is a measure of quality of the storage format and answers the question: What will be the final disk size as a percentage of the dense representation?
 Given that values of the original matrix require $b_{val}$ bits per value (fp16 requires 16 bits), we get:
 
-$$d_{eff}=\frac{realstorage}{R.C.b_{val}}$$
+$$d_{eff}=\frac{realstorage}{R⋅C⋅b_{val}}$$
 
 For example, dense representation has $d_{eff}=1$ regardless of the matrix density.
 
@@ -112,14 +112,14 @@ So if you prune your model to density $d=0.34$ (sparsity 66% ), the CSR represen
 In the best case, we will not need to add any padding.
 In terms of storage, we just added $b_{\Delta}=4$ bits (to represent deltas) for every non zero value, and one index for each row.
 
-$$d_{besteff} = \frac{R.C.d(b_{\Delta}+b_{val}) + 32R}{R.C.b_{val}}$$
+$$d_{besteff} = \frac{R⋅C⋅d(b_{\Delta}+b_{val}) + 32R}{R⋅C⋅b_{val}}$$
 
-After dropping the $\frac{32}{C.b_{val}}$ term we get
+After dropping the $\frac{32}{C⋅b_{val}}$ term we get
 
 $$d_{besteff} = d\frac{(b_{\Delta}+b_{val})}{b_{val}} = 1.25~d$$
 
 This is amazing! 
-Our format becomes more effective then dense representation for density as high as 80% and sparsity as low as 20%. 
+Our format becomes more effective then dense representation for density as high as 80% (respectively sparsity as low as 20%). 
 Compared to CSR, where the break even point is sparsity 66.6%.
 
 Also, for high density it is not that hard to achieve this perfect scenario.
@@ -137,7 +137,7 @@ If the delta between consecutive column indices is 16, it is awesome and our non
 On the other hand, if we have delta 17, we need to add a padding value and the actual delta corresponding to the non zero value will be just $1$ (didn't take care of anything).
 
 In the worst case, all zeroes need to be covered by padding.
-So we need to add $\frac{(1-d).R.C}{2^{b_{\Delta}}}$ additional zeroes to our `values` array and corresponding entries to the `deltas` array.
+So we need to add $\frac{(1-d)⋅R⋅C}{2^{b_{\Delta}}}$ additional zeroes to our `values` array and corresponding entries to the `deltas` array.
 
 $$d_{worsteff} = \frac{R.C(d+\frac{(1-d)}{2^{b_{\Delta}}})(b_{\Delta}+b_{val}) + 32R}{R.C.b_{val}}$$
 
@@ -206,7 +206,6 @@ Interesting points
 - MACKO improves over cuSPARSE across all sparsities between 0 and 90%. There are shapes for which cuSPARSE can be faster for sparsities above 95%.
 - MACKO improves over cuBLAS for sparsity above 30% in general, and for small matrices even above 20% (this is likely caused by cuBLAS not being optimized for this specific shape and GPU pair).
 
-
 ## Benchmarking details
 
 All benchmarks are run for fp16 ($b_{val}=16$, $b_{\Delta}=4$).
@@ -217,7 +216,7 @@ We benchmark on 3 different consumer GPUs:
 - NVIDIA_GeForce_RTX_4090 (vast.ai)
 
 We compare against
-- dense representation with cuBlas multiplication, fp32 accumulator (kernel_id=2)
+- dense representation with cuBLAS multiplication, fp32 accumulator (kernel_id=2)
 - CSR32 with cuSPARSE multiplication, fp32 accumulator (kernel_id=3)
 - MACKO (kernel_id=7)
 
@@ -231,7 +230,6 @@ See benchmarking script for precise parameters of the baselines and other method
 In GPU benchmarking, trust nothing, only code is the source of truth.
 
 All data can be seen in the `./c_benchmarking/results_16bit/<GPU_NAME>/results.txt`.
-
 
 # End2End benchmarks
 
@@ -254,14 +252,15 @@ Note that MACKO is a lossless format and perfectly reproduces the result of dens
 
 We see that MACKO practically matches the dense representation at very high density of 80%, and we see a meaningfull 10% memory reduction and speedup for density 70%
 
-For density 50%, we see a significatn 1.5x resuction in memory and 1.5x increase in number of tokens.
+For density 50%, we see a significatn 1.5x reduction in memory and 1.5x increase in number of tokens.
 
 Finally, these improvements hold all the way to density 10%, where we see 5x memory reduction and 4x speedup.
 
 If you want to reproduce End2End inference results, follow [technical instructions](../TECHNICAL_README.md).
 
+# Afterword
 
-Note: The process of running LLM efficiently in torch with custom multiplication kernels is more involved than one would expect.
+The process of running LLM efficiently in torch with custom multiplication kernels is more involved than one would expect.
 If you attempt to do the same, be ready for the following:
 - Integrate your kernel into python
 - Integrate your kernel into torch
