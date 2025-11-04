@@ -19,7 +19,8 @@ def __init_compressor():
 
     lib_name = f"macko_spmv_compression_{pkg_version}"
     build_directory = None if not BUILD_DIRECTORY else os.path.join(BUILD_DIRECTORY, lib_name)
-    os.makedirs(build_directory, exist_ok=True)
+    if build_directory is not None:
+        os.makedirs(build_directory, exist_ok=True)
 
     lib = load_inline(
         name=lib_name,
@@ -70,7 +71,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
     lib_name = f"macko_spmv_multiplication_{pkg_version}"
     build_directory = None if not BUILD_DIRECTORY else os.path.join(BUILD_DIRECTORY, lib_name)
-    os.makedirs(build_directory, exist_ok=True)
+    if build_directory is not None:
+        os.makedirs(build_directory, exist_ok=True)
 
     lib = load_inline(
         name=lib_name,
