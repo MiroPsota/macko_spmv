@@ -28,7 +28,7 @@ for ((i=0; i<${#Rs[@]}; i++)); do
         for d in 1.0 0.9 0.8 0.7 0.6 0.5 0.4 0.3 0.2 0.1 0.05;
         do
             partial_result_file=${base_results}/partial/${R}_${C}_${algo}_${d}.txt
-            ./benchmark 16 $R $C 100 1000 1 0 $algo 47 $d > $partial_result_file
+            ./benchmark $bits_per_value $R $C 100 1000 1 0 $algo 47 $d > $partial_result_file
             if grep -q "Final results:" "$partial_result_file"; then
                 grep "Final results:" "$partial_result_file"
             else

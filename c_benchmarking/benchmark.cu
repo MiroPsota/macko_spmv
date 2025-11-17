@@ -88,6 +88,26 @@ void run_mv(int kernel_id, TestData *test_data, cudaStream_t stream, cublasHandl
                                    test_data->Buffer));
         break;
     }
+    case 4: // cublas fp32 compute
+    {
+        float alpha = 1.0f;
+        float beta = 0.0f;
+        cublasCheck(cublasGemmEx(
+            handle,
+            CUBLAS_OP_T, CUBLAS_OP_N,
+            test_data->M_rows,
+            1,
+            test_data->M_cols,
+            &alpha,
+            test_data->M_int8_d, CUDA_R_8I, test_data->M_cols,
+            test_data->V_int8_d, CUDA_R_8I, test_data->M_cols,
+            &beta,
+            test_data->C_float_d, CUDA_R_32F, test_data->M_rows,
+            CUBLAS_COMPUTE_32F,
+            CUBLAS_GEMM_DEFAULT));
+        test_data->format_used = 0;
+        break;
+    }
     // TIDI case 4: // int8 times fp16!
     case 7:
     {

@@ -307,12 +307,14 @@ public:
     __half *M_half_d, *V_half_d, *C_half_d;
 
     int8_t *M_int8_h, *M_int8_d;
+    int8_t *V_int8_h, *V_int8_d;
 
     int M_float_size;
     int V_float_size;
     int M_half_size;
     int V_half_size;
     int M_int8_size;
+    int V_int8_size;
 
     // MACKO compression
     unsigned char *M_deltas_h, *M_deltas_d;
@@ -378,8 +380,11 @@ public:
 
         // int8 stuff
         M_int8_size = UPDIV(M_cols*M_rows, 8)*8;
+        V_int8_size = UPDIV(M_cols, 8)*8;
         M_int8_h = (int8_t *)malloc(M_int8_size* sizeof(int8_t));
+        V_int8_h = (int8_t *)malloc(V_int8_size * sizeof(int8_t));
         cudaCheck(cudaMalloc((void **)&M_int8_d, M_int8_size * sizeof(int8_t)));
+        cudaCheck(cudaMalloc((void **)&V_int8_d, V_int8_size * sizeof(int8_t)));
 
         init_non_zero_matrix(M_float_h, M_rows * M_cols);
         init_non_zero_vector(V_float_h, M_cols);
@@ -398,6 +403,7 @@ public:
         cudaCheck(cudaMemcpy(M_half_d, M_half_h, M_half_size * sizeof(__half), cudaMemcpyHostToDevice));
         cudaCheck(cudaMemcpy(V_half_d, V_half_h, V_half_size * sizeof(__half), cudaMemcpyHostToDevice));
         cudaCheck(cudaMemcpy(M_int8_d, M_int8_h, M_int8_size * sizeof(int8_t), cudaMemcpyHostToDevice));
+        cudaCheck(cudaMemcpy(V_int8_d, V_int8_h, V_int8_size * sizeof(int8_t), cudaMemcpyHostToDevice));
 
         setupCusparse();
     }
@@ -470,7 +476,7 @@ public:
                     M[i] = float(rand() % 101 - 50) / 100;
                 } else if (bits_per_value==8)
                 {
-                    M[i] = float(rand() % 101 - 50);
+                    M[i] = float(rand() % 21 - 10);
                 } else{
                     assert(false);
                 }
@@ -483,7 +489,13 @@ public:
         for (int i = 0; i < size; i++)
         {
             do{
-                M[i] = float(rand() % 101-50) / 100;
+                if(bits_per_value==16){
+                    M[i] = float(rand() % 101-50) / 100;
+                } else if(bits_per_value==8){
+                    M[i] = float(rand() % 21 - 10);
+                } else {
+                    assert(false);
+                }
             } while(M[i]==0);
         }
     }
@@ -565,6 +577,10 @@ public:
             //M_float_h should have int values.
             M_int8_h[i] = int8_t(M_float_h[i]);
         }
+        for (int i = 0; i < M_cols; i++)
+        {
+            V_int8_h[i] = int8_t(V_float_h[i]);
+        }
     }
 
     void print_matrices()
@@ -584,6 +600,9 @@ public:
         cout << "M int8:\n";
         print_matrix(M_int8_h, M_rows, M_cols);
 
+        cout << "V int8:\n";
+        print_matrix(V_int8_h, 1, M_cols);
+        
         cout << "M values: " << M_sparse_size << " " << M_sparse_padded_size << endl;
         print_matrix(M_values_h, 1, M_sparse_size);
 

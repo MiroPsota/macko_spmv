@@ -1,1 +1,1 @@
-bash run_tests.sh 8 "8"
+bash run_tests.sh 8 "4 8"
