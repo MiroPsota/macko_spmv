@@ -393,17 +393,18 @@ public:
         convert_to_halfs();
         
         compress();
-
-        convert_to_int8();
-        compress_int8();
-
         // Copy to cuda
         cudaCheck(cudaMemcpy(M_float_d, M_float_h, M_float_size * sizeof(float), cudaMemcpyHostToDevice));
         cudaCheck(cudaMemcpy(V_float_d, V_float_h, V_float_size * sizeof(float), cudaMemcpyHostToDevice));
         cudaCheck(cudaMemcpy(M_half_d, M_half_h, M_half_size * sizeof(__half), cudaMemcpyHostToDevice));
         cudaCheck(cudaMemcpy(V_half_d, V_half_h, V_half_size * sizeof(__half), cudaMemcpyHostToDevice));
-        cudaCheck(cudaMemcpy(M_int8_d, M_int8_h, M_int8_size * sizeof(int8_t), cudaMemcpyHostToDevice));
-        cudaCheck(cudaMemcpy(V_int8_d, V_int8_h, V_int8_size * sizeof(int8_t), cudaMemcpyHostToDevice));
+
+        if(bits_per_value==8){
+            convert_to_int8();
+            compress_int8();
+            cudaCheck(cudaMemcpy(M_int8_d, M_int8_h, M_int8_size * sizeof(int8_t), cudaMemcpyHostToDevice));
+            cudaCheck(cudaMemcpy(V_int8_d, V_int8_h, V_int8_size * sizeof(int8_t), cudaMemcpyHostToDevice));
+        }
 
         setupCusparse();
     }
