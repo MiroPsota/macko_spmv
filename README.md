@@ -7,8 +7,8 @@ These sparsities were historically very hard to make use of in practice, because
 We hope this library will help to spark more interest in the field of neural network pruning and find uses outside it as well.
 Debate whether quantization is better than pruning is beyond the scope of this work, but we hope we will help to bridge the gap.
 
-You can find more information in [our writeup](media/README.md).
-For even more technical information see our paper (TODO coming soon).
+You can find more information on [our blog](media/README.md).
+For even more technical information see our [paper](https://arxiv.org/pdf/2511.13061).
 
 
 # Performance
@@ -27,7 +27,7 @@ For Llama 2-7b model in fp16 pruned with wanda in unstructured mode
 - 50% density: Memory goes from 13.59GB to 8.87GB, tokens/sec from 66.53 to 98.60
 - 10% density: Memory goes from 13.59GB to 2.67GB, tokens/sec from 66.53 to 255.01
 
-You can find detailed benchmarks in [our writeup](media/README.md).
+You can find detailed benchmarks in [our blog](media/README.md).
 See `media` directory for extensive number of graphs.
 MACKO format works across all GPUs and the memory reduction is the same.
 However, the SpMV algorithm is not tuned yet and the performance may vary across GPUS.
@@ -78,12 +78,12 @@ This process is more involved, please refer to [technical readme](TECHNICAL_READ
 
 # Citing
 
-If you use this library, please cite the following paper:
-__ TODO Paper coming soon__.
+If you use this library, please cite the following paper https://arxiv.org/pdf/2511.13061 (bibtex soon).
 
-We will also apreciate some kind words about it to github issues, hacker news, Yannic Kilcher, two minute papers, discord, linkedin, x, tikto, instagram, mastodont, reddit, 4chan, your investors newsletter, your loved ones or whoever you think would find it interesting.
 
-We are a very small team from very little known university, every good promo helps :).
+We will also appreciate some kind words about it to github issues, hacker news, Yannic Kilcher, two minute papers, discord, linkedin, x, tikto, instagram, mastodont, reddit, 4chan, your investors newsletter, your loved ones or whoever you think would find it interesting.
+
+We are a very small team, every good promo helps :).
 
 
 # Authors

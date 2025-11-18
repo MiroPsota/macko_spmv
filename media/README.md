@@ -1,16 +1,23 @@
 # Overview
 
 MACKO-SpMV: **M**utually **A**ligned **C**ompressed coordinates **K**ernel **O**ptimised **Sp**arse **M**atrix **V**ector multiplication is a new format for representing sparse matrices and a cuda kernel for efficient matrix vector multiplication using this format.
-It is targeted at sparsities between 20-90%, commonly seen in Neural Network pruning.
+It is targeted at sparsities between 30-90%, commonly seen in Neural Network pruning.
 
 These sparsities were historically very hard to make use of in practice, because existing formats like CSR are not optimized for this range.
 We hope this library will help to spark more interest in the field of neural network pruning and find uses outside it as well.
 Debate whether quantization is better than pruning is beyond the scope of this work, but we hope we will help to bridge the gap.
 
-For even more technical information see our paper (TODO coming soon). Here, we will go through the main ideas and results in an in-depth but more relaxed manner.
+For even more technical information see our [paper](https://arxiv.org/pdf/2511.13061). Here, we will go through the main ideas and results in an in-depth but more relaxed manner.
+
+The code is available on [github](https://github.com/vlejd/macko_spmv).
 
 First we will go through some background, then see the format and algorithm design, analyze why it is good, and then see some results.
-Headsup, this writing will still assume some very specific, and potentially obscure GPU knowledge. Feel free to raise an issue in our github.
+Headsup, this writing may still assume some very specific, and potentially obscure GPU knowledge. Feel free to raise an issue in our github.
+
+This is how good the kernel is. Runtime of SpMV for size 36864, 12288 in fp16 on an NVIDIA GeForce RTX 4090 GPU.
+The improvement of this work is displayed as highlighted region.
+
+![alt text](../media/NVIDIA_GeForce_RTX_4090_gain_over_baselines.svg)
 
 
 ## Background, CSR baseline
@@ -22,23 +29,21 @@ It is composed of 3 arrays:
 - `column_indices`: holds column index for each value, usually a 32-bit, possibly 16-bit integers.
 - `row_pointers`: index to `values` and `column_indices` signifying the start of a given row.
 
-The biggest problem of CSR in SpMV is the memory overhead it incures because of `column_indices`.  
+The biggest problem of CSR in SpMV is the memory overhead it incurs because of `column_indices`.
 `column_indices` are even more dominant if `values` are low precision (16-bit or less).
 SpMV is a memory bound operation, and this memory overhead directly translates to slower runtime.
 
-Why? Well SpMV needs to perform about 1 operation per 1 byte of accessed memory (ask chatgpt). 
+Why? Well SpMV needs to perform about 1 operation per 1 byte of accessed memory (ask chatgpt).
 Modern GPUs can perform a lot of operations in the same time in which they can read 1 byte (38-80 for consumer GPUs, all the way to 100 for server GPUs, just divide the FLOPS with memory bandwidth).
 
-We need to design a format that does not have unnecesery memory overhead, but still respects constrains for efficient GPU execution.
-
-TODO visual representation of CSR
+We need to design a format that does not have unnecessary memory overhead, but still respects constrains for efficient GPU execution.
 
 
 ## Background, SpMV
 
-**Sp**arse **M**atrix **V**ector multiplication computes $Y=MV$, whre $M$ is a sparse matrix, and $V$ and $Y$ are dense column vector.
+**Sp**arse **M**atrix **V**ector multiplication computes $Y=MV$, where $M$ is a sparse matrix, and $V$ and $Y$ are dense column vectors.
 Common simplification of this problem is to impose some structure on $M$, like 2:4 sparsity, N:M sparsity, or block sparsity.
-In a our case, there are no contraints on the structure of $M$. 
+In a our case, there are no constraints on the structure of $M$.
 
 
 ## MACKO storage format
@@ -61,24 +66,24 @@ $[1,0,0,2,3]$ and the `deltas` array will be $[2,16,16,2,10]$.
 The questions are: How much padding do we need to add? What will be the $d_{eff}$ of this format?
 Trust me, it will be ok. Lets first see the multiplication algorithm.
 
-We will look at MACKO-16-4 ($b_{val}=16$, $b_{\Delta}=4$) optimized for fp16 values and broad range of sparsities. 
+We will look at MACKO-16-4 ($b_{val}=16$, $b_{\Delta}=4$) optimized for fp16 values and broad range of sparsities.
 Many more combinations are possible.
 
-TODO visual representation of MACKO
+Here is an illustration of the format compared to CSR, with $b_{\Delta}=2$.
+
+![MACKO format](../media/Macko_format.svg)
 
 
 ## MACKO SpMV algorithm
 
-TODO visual representation of algorithm
-
 MACKO-SpMV builds upon [Splitk GEMV](https://docs.nvidia.com/cutlass/media/docs/cpp/efficient_gemm.html). There are 3 key insights that are necessary to make this algorithm work.
-Splitk GEMV assigns one warp to each row of matrix $M$ and each warp is responsible to compute the dot product of $V$ and one row. 
+Splitk GEMV assigns one warp to each row of matrix $M$ and each warp is responsible to compute the dot product of $V$ and one row.
 $$Y_r = M_r V$$
 
 To make this algorithm efficient, we just need all memory loading to be coalesced, aligned and large enough to efficiently make use of the cache line.
 
 **First insight**: after warp loads consecutive chunks of values from $M$ (`values`) and `deltas`, threads in the warp can efficiently reconstruct the column indices based on loaded deltas.
-To reconstruct the indices, threads compute prefix sums of deltas using `__shfl_sync` cuda primitive.
+To reconstruct the indices, threads compute warp level exclusive prefix sums of deltas using `__shfl_sync` cuda primitive.
 We can compute the whole prefix sum across the whole warp in only 5 instructions.
 Afterwards, the last thread holds the sum of all deltas in the current warp.
 We broadcast this value across all threads and continue with the next chunk of `deltas` and `values`.
@@ -124,9 +129,9 @@ After dropping the $\frac{32}{C⋅b_{val}}$ term we get
 
 $$d_{besteff} = d\frac{(b_{\Delta}+b_{val})}{b_{val}} = 1.25~d$$
 
-This is amazing! 
-Our format becomes more effective then dense representation for density as high as 80% (respectively sparsity as low as 20%). 
-Compared to CSR, where the break even point is sparsity 66.6%.
+This is amazing!
+Our format becomes more effective then dense representation for density as high as 80% (respectively sparsity as low as 20%).
+Compared to CSR, where the break even point is density 33.3% (sparsity 66.6%).
 
 Also, for high density it is not that hard to achieve this perfect scenario.
 Usual constraints from the N:M sparsity pattern, "have at most X out of Y", are pretty hard to optimize for, while our "have gap of at most 16" is easier and much less restrictive.
@@ -147,11 +152,11 @@ So we need to add $\frac{(1-d)⋅R⋅C}{2^{b_{\Delta}}}$ additional zeroes to ou
 
 $$d_{worsteff} = \frac{R.C(d+\frac{(1-d)}{2^{b_{\Delta}}})(b_{\Delta}+b_{val}) + 32R}{R.C.b_{val}}$$
 
-We again drop the negligeable terms and get
+We again drop the negligible terms and get
 
 $$d_{worsteff} = \left( d+\frac{(1-d)}{2^{b_{\Delta}}} \right) \frac{(b_{\Delta}+b_{val})}{b_{val}} = 1.25\left(d+\frac{1-d}{16}\right)$$
 
-That right term is a mouthfull, but it is still pretty good.
+That right term is bit more complicated, but it is still pretty good.
 For example now the break even point is at $d=0.75$ which is still very good.
 
 
@@ -239,7 +244,7 @@ All matrices are stored in the GPU memory, but not cached.
 See benchmarking script for precise parameters of the baselines and other methodological details.
 In GPU benchmarking, trust nothing, only code is the source of truth.
 
-All data can be seen in the `./c_benchmarking/results_16bit/<GPU_NAME>/results.txt` and all graphs in the `media` directory.
+All data can be seen in the `./c_benchmarking/results_16bit/<GPU_NAME>/results.txt` and all graphs in the `media` directory on [github](https://github.com/vlejd/macko_spmv).
 
 Raw data for some of the baselines (DASP, Sputnik) are in separate repositories.
 
@@ -262,9 +267,9 @@ Note that MACKO is a lossless format and perfectly reproduces the result of dens
 | 0.10    | 13.59                       | 2.67                         | \-80.37                               | 409.51                               | 66.48                    | 255.01                    | 283.59                      |
 
 
-We see that MACKO practically matches the dense representation at very high density of 80%, and we see a meaningfull 10% memory reduction and speedup for density 70%
+We see that MACKO practically matches the dense representation at very high density of 80%, and we see a meaningful 10% memory reduction and speedup for density 70%
 
-For density 50%, we see a significatn 1.5x reduction in memory and 1.5x increase in number of tokens.
+For density 50%, we see a significant 1.5x reduction in memory and 1.5x increase in number of tokens.
 
 Finally, these improvements hold all the way to density 10%, where we see 5x memory reduction and 4x speedup.
 
@@ -272,9 +277,9 @@ If you want to reproduce End2End inference results, follow [technical instructio
 
 # Conclusion
 
-We managed to break a mytical boundary of 50% unstructured sparsity and showed, that with proper format and kernel it leads to practical memory reduction and speedups.
+We managed to break a mythical boundary of 50% unstructured sparsity and showed, that with proper format and kernel it leads to practical memory reduction and speedups.
 
-We hope this work will spark more interest in unstructured pruning, and helps to make sparsity more viable alternative to quantization. 
+We hope this work will spark more interest in unstructured pruning, and helps to make sparsity more viable alternative to quantization.
 
 
 # Afterword
