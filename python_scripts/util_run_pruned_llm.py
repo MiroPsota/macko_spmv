@@ -177,14 +177,15 @@ def run(
     torch.manual_seed(seed)
     g = Generator(model, tokenizer, prompt, tokens, top_k)
 
-    # warmup
+    print("Warm up start")
     for i in range(2):
         torch.manual_seed(i)
         ids, text, decode_time = g.generate()
         print(f"Warmup {i}")
-        print(text[0])
+        print(text)
         print(decode_time)
 
+    print("Warmup done")
     outs = []
     times_s = []
     for i in tqdm.trange(num_runs):
