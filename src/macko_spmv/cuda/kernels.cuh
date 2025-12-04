@@ -55,7 +55,9 @@ __global__ void macko_spmv(
         return;
     }
 
-    for (int warp_row_ordinal = row_begin_ordinal_aligned; warp_row_ordinal < row_end_ordinal; warp_row_ordinal += WARP_SIZE * LOAD_SIZE)
+    for (int warp_row_ordinal = row_begin_ordinal_aligned;
+         (warp_row_ordinal < row_end_ordinal) && (row_begin_ordinal < row_end_ordinal);
+         warp_row_ordinal += WARP_SIZE * LOAD_SIZE)
     {
         int thread_row_ordinal = warp_row_ordinal + lane * LOAD_SIZE;
         const float4 *M_values_vec = reinterpret_cast<const float4 *>(M_values);
@@ -110,14 +112,16 @@ __global__ void macko_spmv(
     acc = warpReduceSum(acc);
     if (lane == 0)
     {
-        if constexpr (reuse_value_from_c){
+        if constexpr (reuse_value_from_c)
+        {
             C[m_row] = __float2half(alpha * acc + beta * __half2float(C[m_row]));
-        } else {
+        }
+        else
+        {
             C[m_row] = __float2half(alpha * acc);
         }
     }
 }
-
 
 // TODO Optimization needed
 template <bool reuse_value_from_c>
@@ -200,9 +204,12 @@ __global__ void macko_spmv_int8(
     acc = warpReduceSum(acc);
     if (lane == 0)
     {
-        if constexpr (reuse_value_from_c){
+        if constexpr (reuse_value_from_c)
+        {
             C[m_row] = __float2half(alpha * acc + beta * __half2float(C[m_row]));
-        } else {
+        }
+        else
+        {
             C[m_row] = __float2half(alpha * acc);
         }
     }
